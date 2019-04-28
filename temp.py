@@ -26,12 +26,12 @@ def time_transform(times):
     ts = time.mktime(time.strptime('{}'.format(times),
          "%Y-%m-%d %H:%M:%S")) - 1517414400.0 #2018-02-01
     return ts
-
+'''
 data = pd.read_csv(action_path)
 data.iloc[:, 2] =  data.iloc[:, 2].map(time_transform)
 data = data.sort_values(by = ["user_id",
-                                  "action_time"])
-'''
+                                "action_time"])
+
 本函数只用于绘制浏览-下单时间直方图
 def get_hin(data):
     i = 0
@@ -63,9 +63,8 @@ def get_hin(data):
 
 def get_action_feat(actions1, actions2):
     # 提取浏览时长
-    i = 0
-    length = len(actions1)
-    nun_user = actions1.loc[0, "user_id"]
+    
+    nun_user = actions1.loc[actions1.index[0], "user_id"]
     temp1 = {} #初次浏览时间
     temp2 = {} #末次浏览时间
     temp3 = defaultdict(lambda: 0) #总浏览次数
@@ -73,8 +72,7 @@ def get_action_feat(actions1, actions2):
     view_times = np.array([], dtype = int)
     user_id = np.array([], dtype = int)
     sku_ids = np.array([], dtype = int)
-    
-    while i < length:
+    for i in actions1.index:
         if actions1.loc[i, "user_id"] != nun_user:
             skus = list(temp1.keys())
             for sku in skus:
@@ -93,22 +91,21 @@ def get_action_feat(actions1, actions2):
         temp2[sku_id] = actions1.loc[i, "action_time"]
         if sku_id not in temp1.keys():
             temp1[sku_id] = actions1.loc[i, "action_time"]
-        i += 1
         
     df = pd.DataFrame({"user_id" : user_id,
                       "sku_id" : sku_ids,
                       "view_dauer" : view_dauer,
                       "view_times" : view_times})
-    length = len(actions2)
     tar = np.array([], dtype = int)
-    for i in range(length):
-        if 2 in actions2[(actions2["user_id"] == 
-                         df["user_id"][i]) &
+    for i in df.index:
+        has_2 = np.array(actions2[(actions2["user_id"] == 
+                         df.loc[i, "user_id"]) &
                          (actions2["sku_id"] == 
-                         df["sku_id"][i])]["type"]:
-            tar[i] = 1
+                         df.loc[i, "sku_id"])]["type"])
+        if 2 in has_2:
+            tar = np.append(tar, 1)
         else:
-            tar[i] = 0
+            tar = np.append(tar, 0)
     df.insert(0, "tar", tar)
     return df
 
@@ -161,9 +158,9 @@ def get_actions(start_date, end_date):
     if os.path.exists(dump_path):
         actions = pickle.load(open(dump_path, "rb"))
     else:
-        actions = pd.read_csv(action_path)
-        actions = actions[(actions["time"] >= start_date) &
-                          (actions["time"] < end_date)]
+        actions = pd.read_csv(action_path).iloc[0:5000000,:]
+        actions = actions[(actions["action_time"] >= start_date) &
+                          (actions["action_time"] < end_date)]
         pickle.dump(actions, open(dump_path, 'wb'))
     return actions
 
@@ -178,9 +175,11 @@ def get_accumulate_action_feat(start_date, mid_date, end_date):
         actions1 = get_actions(start_date, mid_date)
         actions2 = get_actions(mid_date, end_date)
         actions_feat = get_action_feat(actions1, actions2)
-        pickle.dump(actions_feat, open(dump_path, 'wb'))
+        #pickle.dump(actions_feat, open(dump_path, 'wb'))
     return actions_feat
-
+test = get_accumulate_action_feat("2018-02-04 00:00:00",
+                           "2018-02-05 12:00:00",
+                           "2018-02-05 23:59:00")
 
 '''
 buy_dauer = get_hin(data)
