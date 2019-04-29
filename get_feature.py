@@ -22,7 +22,7 @@ shop_path = "data/jdata/jdata_shop.csv"
 
 class windows():
     
-    def __init__(self, start_date, mid_date, end_date, subset = 100000):
+    def __init__(self, start_date, mid_date, end_date, subset = 10000):
         '''
         start_date：窗口开始时间
         mid_date：窗口中段时间
@@ -36,10 +36,9 @@ class windows():
         self.fets2 = ['shop_id', 'fans_num', 'vip_num', "shop_reg_tm",
                     'shop_score']
         # 用户特征
-        self.fets3 = ["user_id", "age", "sex", "sex", "user_reg_tm",
-                       "user_reg_tm",
-                       "user_lv_cd", "city_level", "city_level", "province",
-                       "province", "city", "city", "county"]
+        self.fets3 = ["user_id", "age", "sex", "user_reg_tm",
+                       "user_lv_cd", "city_level", "province",
+                       "province", "city", "county"]
         
         
         self.start_date = self.time_transform(start_date)
