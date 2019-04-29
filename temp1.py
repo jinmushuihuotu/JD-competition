@@ -29,7 +29,7 @@ def time_transform0(times):
          "%Y-%m-%d")) - 1517414400.0
     return ts
 
-                     
+#product对应shop                   
 def get_product_shop(product,shop):
     sku_id = np.ndarray.tolist(np.unique(product.iloc[:,0]))
     shop_id_product = np.ndarray.tolist(np.unique(product.iloc[:,2]))
