@@ -22,7 +22,7 @@ shop_path = "data/jdata/jdata_shop.csv"
 
 class windows():
     
-    def __init__(self, start_date, mid_date, end_date, subset = 10000):
+    def __init__(self, start_date, mid_date, end_date, subset = 1000000):
         '''
         start_date：窗口开始时间
         mid_date：窗口中段时间
@@ -204,7 +204,7 @@ class windows():
             sex_df = pd.get_dummies(user["sex"], prefix="sex")
             user_lv_df = pd.get_dummies(user["user_lv_cd"], prefix="user_lv_cd")
             user = pd.concat([user[self.fets3], age_df, sex_df, user_lv_df], axis=1)
-            self.fets3 = list(user)
+            self.fets3 = list(user.columns)
             pickle.dump(user, open(dump_path, 'wb'))
             
         us_dict = user.set_index('user_id').T.to_dict('list')
@@ -231,8 +231,6 @@ class windows():
             self.feats[self.fets3[i + 1]] = self.feats["user_id"].map(lambda x:
                     us_dict[x][i])
            
-            
-        self.feats.pop("")
         #self.feats = self.feats.dropna()
         
 test = windows("2018-02-15 00:00:00",
