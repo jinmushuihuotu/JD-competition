@@ -19,7 +19,13 @@ user_path = "data/jdata/jdata_user.csv"
 
 class windows():
     
-    def __init__(self, start_date, mid_date, end_date, subset = 10000):
+    def __init__(self, start_date, mid_date, end_date, subset = 1000000):
+        '''
+        start_date：窗口开始时间
+        mid_date：窗口中段时间
+        end_date：窗口结束时间
+        subset：取子样本数量
+        '''
         self.subset = subset
         self.start_date = self.time_transform(start_date)
         self.mid_date = self.time_transform(mid_date)
@@ -32,9 +38,11 @@ class windows():
         self.feats = self.get_action_feat()
         
     def time_transform(self, times):
-        # 转换时间的函数
-        # 文本"%Y-%m-%d %H:%M:%S" 转换为时间戳
-    
+        '''
+        时间转换函数
+        返回：把文本"%Y-%m-%d %H:%M:%S" 转换为时间戳
+        '''
+        
         if len(times) == 21:
             times = times[:-2]
             
@@ -44,8 +52,10 @@ class windows():
         return ts
     
     def get_action_feat(self):
-    # 获取一个窗口内的累计特征
-    # 目标变量、浏览时长和浏览次数
+        '''
+        获取一个窗口内的主要特征
+        包括目标变量、浏览时长和浏览次数
+        '''
     
         dump_path = './cache/action_accumulate_%s_%s_%s.pkl' % (
                 self.start_date,
@@ -55,17 +65,22 @@ class windows():
         if os.path.exists(dump_path):
             actions_feat = pickle.load(open(dump_path, "rb"))
             return actions_feat
-
+        
+        # 查询当前遍历用户
         nun_user = self.actions1.loc[self.actions1.index[0],
                                 "user_id"]
-        temp1 = {} #初次浏览时间
-        temp2 = {} #末次浏览时间
-        temp3 = defaultdict(lambda: 0) #总浏览次数
-        view_dauer = np.array([])
-        view_times = np.array([], dtype = int)
-        user_id = np.array([], dtype = int)
-        sku_ids = np.array([], dtype = int)
+        
+        temp1 = {} # 初次浏览时间
+        temp2 = {} # 末次浏览时间
+        temp3 = defaultdict(lambda: 0) # 总浏览次数
+        view_dauer = np.array([]) # 浏览时长
+        view_times = np.array([], dtype = int) # 浏览次数
+        user_id = np.array([], dtype = int) # 用户ID
+        sku_ids = np.array([], dtype = int) # 商品ID
+        
+        # 遍历行为数据，查找特征
         for i in self.actions1.index:
+            # 如果当前遍历用户改变，结算浏览时长，更新缓存数据
             if self.actions1.loc[i, "user_id"] != nun_user:
                 skus = list(temp1.keys())
                 for sku in skus:
@@ -79,16 +94,20 @@ class windows():
                 temp1 = {}
                 temp2 = {}
                 temp3 = defaultdict(lambda: 0)
+                
             sku_id = self.actions1.loc[i, "sku_id"]
             temp3[sku_id] += 1
             temp2[sku_id] = self.actions1.loc[i, "action_time"]
             if sku_id not in temp1.keys():
                 temp1[sku_id] = self.actions1.loc[i, "action_time"]
-            
+        
+        
+        # 构建返回的数据框
         actions_feat = pd.DataFrame({"user_id" : user_id,
                           "sku_id" : sku_ids,
                           "view_dauer" : view_dauer,
                           "view_times" : view_times})
+        # 创建目标变量
         tar = np.array([], dtype = int)
         for i in actions_feat.index:
             has_2 = np.array(self.actions2[(self.actions2["user_id"] == 
@@ -99,54 +118,15 @@ class windows():
                 tar = np.append(tar, 1)
             else:
                 tar = np.append(tar, 0)
+                
         actions_feat.insert(0, "tar", tar)
         pickle.dump(actions_feat, open(dump_path, 'wb'))
         
         return actions_feat
-
-    def get_basic_user_feat(self):
-        '''
-            获取用户基本资料（年龄、性别，用户等级）
-            所有特征['user_id', 'age', 'sex',
-            'user_reg_tm', 'user_lv_cd', 'city_level',
-            'province', 'city', 'county']
-        '''
-        
-        dump_path = 'cache/basic_user.pkl'
-        if os.path.exists(dump_path):
-            user = pickle.load(open(dump_path, "rb"))
-        else:
-            user = pd.read_csv(user_path, encoding='gbk')
-            age_df = pd.get_dummies(user["age"], prefix="age")
-            sex_df = pd.get_dummies(user["sex"], prefix="sex")
-            user_lv_df = pd.get_dummies(user["user_lv_cd"],
-                   prefix="user_lv_cd")
-            user = pd.concat([user['user_id'],
-                age_df, sex_df, user_lv_df], axis=1)
-            pickle.dump(user, open(dump_path, 'wb'))
-    
-        return user
-    
-    
-    def get_basic_product_feat(self):
-    
-        dump_path = './cache/basic_product.pkl'
-        if os.path.exists(dump_path):
-            product = pickle.load(open(dump_path, "rb"))
-        else:
-            product = pd.read_csv(product_path)
-            product["market_time"] = product["market_time"].map(
-                    lambda x: int(self.time_transform(x)/86400) + 1)
-            product = product[['sku_id', 'cate',
-                                         'brand', 'market_time']]
-            pickle.dump(product, open(dump_path, 'wb'))
-        return product
     
     def get_actions(self, start_date, end_date):
         """
-        :param start_date:
-        :param end_date:
-        :return: actions: pd.Dataframe
+        获取时间段内的actions数据
         """
         dump_path = './cache/all_action_%s_%s.pkl' % (start_date,
                                                       end_date)
@@ -159,7 +139,8 @@ class windows():
             pickle.dump(actions, open(dump_path, 'wb'))
 
         return actions
-
+    
+    
 '''
 def time_transform(times):
 # 转换时间的函数
