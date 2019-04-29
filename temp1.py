@@ -83,11 +83,13 @@ shop = pd.read_csv(shop_path)
 comment = pd.read_csv(comment_path)
 user = pd.read_csv(user_path)
 
+#改变其他四个表文本时间
 product.iloc[:,4] =  product.iloc[:,4].apply(time_transform)
 shop.iloc[:,4] =  shop.iloc[:,4].apply(time_transform)
 comment.iloc[:,0] = comment.iloc[:,0].apply(time_transform0)
 user.iloc[:,5] = user.iloc[:,5].apply(time_transform)
-     
+ 
+#生成附带特征的newdata    
 dict0 = get_product_shop(product,shop)
 newdata = get_feature_product_shop(data,dict0)
 newdata = get_feature_user(data,user)
