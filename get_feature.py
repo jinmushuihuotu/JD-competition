@@ -28,8 +28,6 @@ class windows():
         '''
         y = 取目标变量的间隔（天）
         lange = 窗口长度（天）
-        start_date：窗口开始时间
-        mid_date：窗口中段时间
         end_date：窗口结束时间
         subset：取子样本数量
         '''
