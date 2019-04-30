@@ -23,7 +23,7 @@ shop_path = "data/jdata/jdata_shop.csv"
 class windows():
     
     def __init__(self, end_date,
-                     y = 5, lange = 30,
+                     y = 7, lange = 30,
                      subset = 1000000):
         '''
         y = 取目标变量的间隔（天）
@@ -51,7 +51,7 @@ class windows():
         
         self.end_date = self.time_transform(end_date)
         self.mid_date = self.end_date - 86400 * y
-        self.start_date = self.mid_date - 86400 * lange
+        self.start_date = self.end_date - 86400 * lange
         print("寻找行为数据")
         self.actions1 = self.get_actions(self.start_date,
                                         self.mid_date)
@@ -281,7 +281,6 @@ class windows():
 
 
 if __name__ == "__main__":
-    # 
-    test = windows("2018-04-15 00:00:00", 5 , 25)
+    test = windows("2018-04-15 00:00:00", 7 , 30)
     #test.feats.to_csv("expm.csv", index = False)
 
