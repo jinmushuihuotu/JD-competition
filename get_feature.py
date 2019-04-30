@@ -59,8 +59,8 @@ class windows():
                                         self.end_date)
         self.feats = self.get_action_feat()
         self.get_feature_product_shop()
-        if y != 0:
-            self.lower_sample_data()
+        #if y != 0:
+        #    self.lower_sample_data()
         
         time_end = time.time()
         print('time cost',time_end-time_start,'s')
