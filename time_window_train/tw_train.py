@@ -6,7 +6,7 @@ import pickle
 import warnings
 warnings.filterwarnings("ignore")
 import os
-os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 #输入csv文件名，读出x y label
 def read_pre_data(filename):
