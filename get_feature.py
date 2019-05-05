@@ -45,8 +45,8 @@ class windows():
         self.fets2 = ['shop_id', 'fans_num', 'vip_num', "shop_reg_tm",
                     'shop_score']
         # 用户特征
-        self.fets3 = ["user_id", "age", "sex", "user_reg_tm",
-                       "user_lv_cd", "city_level", "province",
+        self.fets3 = ["user_id", "user_reg_tm",
+                       "user_lv_cd", "city_level",
                        "province", "city", "county"]
         
         self.end_date = self.time_transform(end_date)
@@ -184,12 +184,11 @@ class windows():
             temp2[sku_id] = self.actions1.loc[i, "action_time"]
             if sku_id not in temp1.keys():
                 temp1[sku_id] = self.actions1.loc[i, "action_time"]
-        '''
-        print("创建目标变量")
+                '''
+        print("查找特征，创建目标变量")
         tp_action = self.actions2[self.actions2["type"] == 2]
         tp_action["type"] = 6
-        
-        print("遍历行为数据，查找特征")
+    
         actions_feat = self.actions1.append(tp_action)
         
         dums = pd.get_dummies(actions_feat['type'], prefix = 'type')
@@ -198,7 +197,9 @@ class windows():
         actions_feat = actions_feat.groupby(['user_id','sku_id'],
                                              as_index = False).sum()
         
-        actions_feat = actions_feat[(actions_feat["type_1"]!=0) | (actions_feat["type_6"]==0)]
+        #actions_feat = actions_feat[(actions_feat["type_1"]!=0) | (actions_feat["type_6"]==0)]
+        actions_feat = actions_feat[actions_feat["type_1"] > 0]
+        
         actions_feat[actions_feat["type_6"] > 0]["type_6"] = 1
         
         # 构建返回的数据框
@@ -257,6 +258,7 @@ class windows():
                                      "rb"))#.iloc[0:1000000,:]
         else:
             actions = pd.read_csv(action_path)
+            actions = actions.dropna()
             pickle.dump(actions, open('./cache/all_action.pkl', 'wb'))
             #actions = actions.iloc[0:1000000,:]
             
@@ -269,8 +271,8 @@ class windows():
                      
     def get_product_shop(self):
         
-       
-        print("通过sku_id查询商品信息")
+        null_dict = defaultdict(lambda :np.nan)
+        
         dump_path = './cache/basic_product.pkl'
         if os.path.exists(dump_path):
             ps_dict = pickle.load(open(dump_path, "rb"))
@@ -281,13 +283,13 @@ class windows():
                     lambda x: self.time_transform(x))
             
             product = product[self.fets1]
-            ps_dict = product.set_index('sku_id').T.to_dict('list')
+            ps_dict = product.set_index('sku_id').to_dict('index')
             pickle.dump(ps_dict, open(dump_path, 'wb'))
-            
-        ps_dict = defaultdict(lambda :np.full([len(self.fets1) - 1],
-                                               np.nan), ps_dict)
         
-        print("通过shop_id查询店铺信息")
+        
+        ps_dict = defaultdict(lambda :null_dict, ps_dict)
+        
+        
         dump_path = './cache/basic_shop.pkl'
         if os.path.exists(dump_path):
             sp_dict = pickle.load(open(dump_path, "rb"))
@@ -297,14 +299,11 @@ class windows():
             shop["shop_reg_tm"] = shop["shop_reg_tm"].map(
                     lambda x: self.time_transform(x))
             shop = shop[self.fets2]
-            sp_dict = shop.set_index('shop_id').T.to_dict('list')
+            sp_dict = shop.set_index('shop_id').to_dict('index')
             pickle.dump(sp_dict, open(dump_path, 'wb'))
             
-        sp_dict = defaultdict(lambda :np.full([len(self.fets2) - 1],
-                                               np.nan), sp_dict)
+        sp_dict = defaultdict(lambda :null_dict, sp_dict)
         
-        
-        print("通过user_id查询用户信息")
         dump_path = './cache/basic_user.pkl'
         if os.path.exists(dump_path):
             us_dict = pickle.load(open(dump_path, "rb"))
@@ -318,11 +317,11 @@ class windows():
             user_lv_df = pd.get_dummies(user["user_lv_cd"], prefix="user_lv_cd")
             user = pd.concat([user[self.fets3], age_df, sex_df, user_lv_df], axis=1)
             self.fets3 = list(user.columns)
-            us_dict = user.set_index('user_id').T.to_dict('list')
+            us_dict = user.set_index('user_id').to_dict('index')
             pickle.dump(us_dict, open(dump_path, 'wb'))
             
-        us_dict = defaultdict(lambda :np.full([len(self.fets3) - 1],
-                                               np.nan), us_dict)    
+        us_dict = defaultdict(lambda :null_dict, us_dict)
+        
         return ps_dict, sp_dict, us_dict
     
     
@@ -331,17 +330,32 @@ class windows():
         print("正在进行特征查询")
         ps_dict, sp_dict, us_dict = self.get_product_shop()
         
+        print("通过sku_id查询商品信息")
+        
+        self.feats = self.feats.dropna()
+        
         for i in range(len(self.fets1) - 1):
+            print(i)
             self.feats[self.fets1[i + 1]] = self.feats["sku_id"].map(lambda x:
-                    ps_dict[x][i])
-            
+                    ps_dict[x][self.fets1[i + 1]])
+        
+        self.feats = self.feats.dropna()
+        
+        print("通过shop_id查询店铺信息")
+        
         for i in range(len(self.fets2) - 1):
-            self.feats[self.fets2[i + 1]] = self.feats["sku_id"].map(lambda x:
-                    sp_dict[ps_dict[x][-1]][i])
-            
+            print(i)
+            self.feats[self.fets2[i + 1]] = self.feats["shop_id"].map(lambda x:
+                    sp_dict[x][self.fets2[i + 1]])
+        
+        self.feats = self.feats.dropna()
+        
+        print("通过user_id查询用户信息")
+        
         for i in range(len(self.fets3) - 1):
+            print(i)
             self.feats[self.fets3[i + 1]] = self.feats["user_id"].map(lambda x:
-                    us_dict[x][i])
+                    us_dict[x][self.fets3[i + 1]])
            
         self.feats = self.feats.dropna()
 
@@ -353,8 +367,6 @@ def get_f(time):
     
 if __name__ == "__main__":
     
-    test = windows("%s 00:00:00" % "2018-04-15", 7 , 30)
-    '''
     get_f("2018-04-15")
     get_f("2018-04-10")
     get_f("2018-04-06")
