@@ -1,7 +1,7 @@
 import pandas as pd
 from collections import Counter
 import pickle
-
+'''
 action_path = "data/jdata/jdata_action.csv"
 data = pd.read_csv(action_path)
 def get_from_action_data(df):
@@ -30,9 +30,19 @@ def get_from_action_data(df):
 data = get_from_action_data(data)
 data = data[data['buy_num'] != 0]
 pickle.dump(data, open('./cache/all_action.pkl', 'wb'))
-
+'''
 '''
 数据排序部分
+def time_transform(self, times):
+
+    if len(times) == 21:
+        times = times[:-2]
+            
+    ts = time.mktime(time.strptime('{}'.format(times),
+        "%Y-%m-%d %H:%M:%S")) - 1517414400.0 #2018-02-01
+
+    return ts
+    
 data = pd.read_csv(action_path)
 data.iloc[:, 2] =  data.iloc[:, 2].map(time_transform)
 data = data.sort_values(by = ["user_id",
@@ -67,3 +77,109 @@ def get_hin(data):
         i += 1
     return buy_dauer
 '''
+
+
+'''
+
+    def get_from_action_data(self, df):
+
+        def add_type_count(group):
+            behavior_type = group.type.astype(int)
+            # 用户行为类别
+            type_cnt = Counter(behavior_type)
+            # 1: 浏览 2: 下单 3: 关注
+            # 4: 评论 5: 加购
+            group['browse_num'] = type_cnt[1]
+            group['buy_num'] = type_cnt[2]
+            group['follow_num'] = type_cnt[3]
+            group['comment_num'] = type_cnt[4]
+            group['addcart_num'] = type_cnt[5]
+        
+            return group[['user_id', "sku_id", 'buy_num',
+                          "browse_num", 'follow_num',
+                          'comment_num', 'addcart_num']]
+        # df_ac = df.groupby(['user_id',"sku_id"],
+        #         as_index = False).agg({"type":Counter})
+        df_ac = df.groupby(['user_id',"sku_id"],
+                        as_index = False).apply(add_type_count)
+        # 将重复的行丢弃
+        df_ac = df_ac.drop_duplicates(['user_id','sku_id'])
+    
+        return df_ac
+'''
+
+
+'''
+# 查询当前遍历用户
+        nun_user = self.actions1.loc[self.actions1.index[0],
+                                "user_id"]
+        
+        temp1 = {} # 初次浏览时间
+        temp2 = {} # 末次浏览时间
+        temp3 = defaultdict(lambda: 0) # 总浏览次数
+        view_dauer = [] # 浏览时长
+        view_times = [] # 浏览次数
+        user_id = [] # 用户ID
+        sku_ids = [] # 商品ID
+    
+        for i in self.actions1.index:
+            # 如果当前遍历用户改变，结算浏览时长，更新缓存数据
+            if self.actions1.loc[i, "user_id"] != nun_user:
+                skus = list(temp1.keys())
+                if len(skus) <= 1:
+                    nun_user = self.actions1.loc[i, "user_id"]
+                    temp1 = {}
+                    temp2 = {}
+                    temp3 = defaultdict(lambda: 0)
+                    continue
+                for sku in skus:
+                    dauer = temp2[sku] - temp1[sku]
+                    dauer = int(dauer/60) + 1    
+                    view_dauer.append(dauer)
+                    view_times.append(temp3[sku])
+                    sku_ids.append(sku)
+                    user_id.append(nun_user)   
+                nun_user = self.actions1.loc[i, "user_id"]
+                temp1 = {}
+                temp2 = {}
+                temp3 = defaultdict(lambda: 0)
+                
+            sku_id = self.actions1.loc[i, "sku_id"]
+            temp3[sku_id] += 1
+            temp2[sku_id] = self.actions1.loc[i, "action_time"]
+            if sku_id not in temp1.keys():
+                temp1[sku_id] = self.actions1.loc[i, "action_time"]
+'''
+
+'''
+        if self.__y == 0:
+            pickle.dump(actions_feat, open(dump_path, 'wb'))
+            return actions_feat
+        
+        
+        a2_tar = self.get_from_action_data(self.actions2)
+        def tarit(x):
+            where_buy = a2_tar[(a2_tar["user_id"] == x['user_id']) 
+            & (a2_tar["sku_id"] == x['sku_id'])]["buy_num"]
+            if (len(where_buy) > 0) and (list(where_buy)[0] > 0):
+                return 1
+            else:
+                return 0
+            
+        actions_feat['tar'] = actions_feat.apply(tarit, axis=1)
+        '''
+        
+        '''
+        tar = []
+        for i in actions_feat.index:
+            has_2 = np.array(self.actions2[(self.actions2["user_id"] == 
+                             actions_feat.loc[i, "user_id"]) &
+                             (self.actions2["sku_id"] == 
+                             actions_feat.loc[i, "sku_id"])]["type"])
+            if 2 in has_2:
+                tar.append(1)
+            else:
+                tar.append(0)
+                
+        actions_feat.insert(0, "tar", tar)
+        '''

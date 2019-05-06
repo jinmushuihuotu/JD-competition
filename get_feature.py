@@ -65,7 +65,7 @@ class windows():
         time_end = time.time()
         print('time cost',time_end-time_start,'s')
         
-    def lower_sample_data(self, percent=1):
+    def lower_sample_data(self, percent = 1):
         '''percent:
         多数类别下采样的数量相对于少数类别样本数量的比例 
         '''
@@ -98,33 +98,6 @@ class windows():
          "%Y-%m-%d %H:%M:%S")) - 1517414400.0 #2018-02-01
 
         return ts
-    
-    def get_from_action_data(self, df):
-
-        def add_type_count(group):
-            behavior_type = group.type.astype(int)
-            # 用户行为类别
-            type_cnt = Counter(behavior_type)
-            # 1: 浏览 2: 下单 3: 关注
-            # 4: 评论 5: 加购
-            group['browse_num'] = type_cnt[1]
-            group['buy_num'] = type_cnt[2]
-            group['follow_num'] = type_cnt[3]
-            group['comment_num'] = type_cnt[4]
-            group['addcart_num'] = type_cnt[5]
-        
-            return group[['user_id', "sku_id", 'buy_num',
-                          "browse_num", 'follow_num',
-                          'comment_num', 'addcart_num']]
-        # df_ac = df.groupby(['user_id',"sku_id"],
-        #         as_index = False).agg({"type":Counter})
-        df_ac = df.groupby(['user_id',"sku_id"],
-                        as_index = False).apply(add_type_count)
-        # 将重复的行丢弃
-        df_ac = df_ac.drop_duplicates(['user_id','sku_id'])
-    
-        return df_ac
-
 
     def get_action_feat(self):
         '''
@@ -141,55 +114,12 @@ class windows():
         if os.path.exists(dump_path):
             actions_feat = pickle.load(open(dump_path, "rb"))
             return actions_feat
-       
         
-        
-        '''
-        # 查询当前遍历用户
-        nun_user = self.actions1.loc[self.actions1.index[0],
-                                "user_id"]
-        
-        temp1 = {} # 初次浏览时间
-        temp2 = {} # 末次浏览时间
-        temp3 = defaultdict(lambda: 0) # 总浏览次数
-        view_dauer = [] # 浏览时长
-        view_times = [] # 浏览次数
-        user_id = [] # 用户ID
-        sku_ids = [] # 商品ID
-    
-        for i in self.actions1.index:
-            # 如果当前遍历用户改变，结算浏览时长，更新缓存数据
-            if self.actions1.loc[i, "user_id"] != nun_user:
-                skus = list(temp1.keys())
-                if len(skus) <= 1:
-                    nun_user = self.actions1.loc[i, "user_id"]
-                    temp1 = {}
-                    temp2 = {}
-                    temp3 = defaultdict(lambda: 0)
-                    continue
-                for sku in skus:
-                    dauer = temp2[sku] - temp1[sku]
-                    dauer = int(dauer/60) + 1    
-                    view_dauer.append(dauer)
-                    view_times.append(temp3[sku])
-                    sku_ids.append(sku)
-                    user_id.append(nun_user)   
-                nun_user = self.actions1.loc[i, "user_id"]
-                temp1 = {}
-                temp2 = {}
-                temp3 = defaultdict(lambda: 0)
-                
-            sku_id = self.actions1.loc[i, "sku_id"]
-            temp3[sku_id] += 1
-            temp2[sku_id] = self.actions1.loc[i, "action_time"]
-            if sku_id not in temp1.keys():
-                temp1[sku_id] = self.actions1.loc[i, "action_time"]
-                '''
         print("查找特征，创建目标变量")
-        tp_action = self.actions2[self.actions2["type"] == 2]
+        tp_action = self.actions2[self.actions2["type"] == 2].copy()
         tp_action["type"] = 6
     
-        actions_feat = self.actions1.append(tp_action)
+        actions_feat = self.actions1.append(tp_action).copy()
         
         dums = pd.get_dummies(actions_feat['type'], prefix = 'type')
         actions_feat = pd.concat([actions_feat[['user_id','sku_id']],
@@ -200,42 +130,13 @@ class windows():
         #actions_feat = actions_feat[(actions_feat["type_1"]!=0) | (actions_feat["type_6"]==0)]
         actions_feat = actions_feat[actions_feat["type_1"] > 0]
         
-        actions_feat[actions_feat["type_6"] > 0]["type_6"] = 1
+        actions_feat.loc[actions_feat["type_6"] > 0, "type_6"] = 1
+        actions_feat.rename(columns={"type_6": "tar"},
+                            inplace=True)
         
         # 构建返回的数据框
         #actions_feat = self.get_from_action_data(self.actions1)
-        '''
-        if self.__y == 0:
-            pickle.dump(actions_feat, open(dump_path, 'wb'))
-            return actions_feat
         
-        
-        a2_tar = self.get_from_action_data(self.actions2)
-        def tarit(x):
-            where_buy = a2_tar[(a2_tar["user_id"] == x['user_id']) 
-            & (a2_tar["sku_id"] == x['sku_id'])]["buy_num"]
-            if (len(where_buy) > 0) and (list(where_buy)[0] > 0):
-                return 1
-            else:
-                return 0
-            
-        actions_feat['tar'] = actions_feat.apply(tarit, axis=1)
-        '''
-        
-        '''
-        tar = []
-        for i in actions_feat.index:
-            has_2 = np.array(self.actions2[(self.actions2["user_id"] == 
-                             actions_feat.loc[i, "user_id"]) &
-                             (self.actions2["sku_id"] == 
-                             actions_feat.loc[i, "sku_id"])]["type"])
-            if 2 in has_2:
-                tar.append(1)
-            else:
-                tar.append(0)
-                
-        actions_feat.insert(0, "tar", tar)
-        '''
         
         pickle.dump(actions_feat, open(dump_path, 'wb'))
         
@@ -366,7 +267,6 @@ def get_f(time):
     pickle.dump(test.feats, open(dump_path, 'wb'))
     
 if __name__ == "__main__":
-    
     get_f("2018-04-15")
     get_f("2018-04-10")
     get_f("2018-04-06")
@@ -375,8 +275,3 @@ if __name__ == "__main__":
     get_f("2018-03-15")
     get_f("2018-03-08")
     get_f("2018-03-01")
-    '''
-    
-
-    
-    
