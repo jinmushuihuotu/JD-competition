@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed May  8 00:25:30 2019
-
-@author: leeec
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Bahn
 """
 
@@ -55,9 +48,6 @@ class windows():
         self.fets3 = ["user_id", "user_reg_tm",
                        "user_lv_cd", "city_level",
                        "province", "city", "county"]
-        # 评论特征（times表示时间窗口下该商品出现天数）
-        self.fets4 = ["sku_id", "times", "comments_num" ,
-                      "good_comments_ratio", "bad_comments_ratio"]
         
         self.end_date = self.time_transform(end_date)
         self.mid_date = self.end_date - 86400 * y
@@ -235,52 +225,6 @@ class windows():
         
         return ps_dict, sp_dict, us_dict
     
-    def get_comment(self,start,end):
-        null_dict = defaultdict(lambda :np.nan)
-
-        dump_path = './cache/basic_comment.pkl'
-        if os.path.exists(dump_path):
-            com_dict = pickle.load(open(dump_path, "rb"))
-        else:
-            comment = pd.read_csv(comment_path)
-            comment = comment.dropna()
-            comment = comment.sort_values(by = ["sku_id","dt"]) #双排序
-            comment["dt"] = comment["dt"].map(
-            lambda x: self.time_transform0(x))
-            comment = comment[(comment["dt"] >= start) & 
-               (comment["dt"] < end)] #只取时间窗口内数据
-            sku_id = np.ndarray.tolist(np.unique(comment["sku_id"]))
-            
-            #生成newcomment，使得每行只有一个指标
-            newcomment = pd.DataFrame({"sku_id": sku_id, "times":0,
-              "comments_num": 0 ,"good_comments_ratio": 0, "bad_comments_ratio": 0})
-
-            for i in range(len(sku_id)):
-            
-                indexlist = []
-                comments_num = 0
-                good_comments_num = 0
-                bad_comments_num = 0
-            
-            #查看指定sku_id在数据框中的所有位置 ,返回indexlist
-                for item in enumerate(sku_id):
-                    if item[1] == sku_id[i]:
-                        indexlist.append(item[0])
-                
-                    for j in range(len(indexlist)):
-                        comments_num = comment["comments_num"][j] + comments_num
-                        good_comments_num = comment["good_comments_num"][j] + good_comments_num
-                        bad_comments_num = comment["bad_comments_num"][j] + bad_comments_num
-                        
-                newcomment["times"][i] = len(indexlist)
-                newcomment["comments_num"][i] = comments_num 
-                newcomment["good_comments_ratio"][i] = good_comments_num/comments_num
-                newcomment["bad_comments_ratio"][i] = bad_comments_num/comments_num
-        
-        com_dict = newcomment.set_index('sku_id').to_dict('index')
-        pickle.dump(com_dict, open(dump_path, 'wb'))            
-        com_dict = defaultdict(lambda :null_dict, com_dict)
-        return com_dict 
     
     def get_feature_product_shop(self):
         
@@ -314,15 +258,6 @@ class windows():
             self.feats[self.fets3[i + 1]] = self.feats["user_id"].map(lambda x:
                     us_dict[x][self.fets3[i + 1]])
            
-        self.feats = self.feats.dropna()
-        
-        print("通过sku_id查询评论信息")
-        com_dict = get_comment(self.start_date, self.mid_date)
-        for i in range(len(self.fets4) - 1):
-            print(i)
-            self.feats[self.fets4[i + 1]] = self.feats["sku_id"].map(lambda x:
-                    com_dict[x][self.fets1[i + 1]])
-        
         self.feats = self.feats.dropna()
 
 
