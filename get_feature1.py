@@ -37,7 +37,7 @@ class windows():
             raise Exception("Error: y und lange must >= 0")
             
         self.__y = y
-        self.__lange = 30
+        self.__lange = lange
         self.subset = subset
         # 商品特征
         self.fets1 = ['sku_id', 'cate', 'brand', 'market_time', 'shop_id']
@@ -113,6 +113,16 @@ class windows():
         
         if os.path.exists(dump_path):
             actions_feat = pickle.load(open(dump_path, "rb"))
+            return actions_feat
+        
+        if self.__y == 0:
+            actions_feat = self.actions1.copy()
+            dums = pd.get_dummies(actions_feat['type'], prefix = 'type')
+            actions_feat = pd.concat([actions_feat[['user_id','sku_id']],
+                                       dums], axis = 1)
+            actions_feat = actions_feat.groupby(['user_id','sku_id'],
+                                                 as_index = False).sum()
+            pickle.dump(actions_feat, open(dump_path, 'wb'))
             return actions_feat
         
         print("查找特征，创建目标变量")
@@ -263,15 +273,9 @@ class windows():
 
 def get_f(time):
     dump_path = './qcache/%s_7_30_all.pkl' % time
-    test = windows("%s 00:00:00" % time, 7 , 30)
+    test = windows("%s 00:00:00" % time, 7 , 23)
     pickle.dump(test.feats, open(dump_path, 'wb'))
     
 if __name__ == "__main__":
-    get_f("2018-04-15")
-    get_f("2018-04-10")
-    get_f("2018-04-06")
-    get_f("2018-03-27")
-    get_f("2018-03-22")
-    get_f("2018-03-15")
-    get_f("2018-03-08")
-    get_f("2018-03-01")
+    test = windows("%s 00:00:00" % "2018-04-15", 0 , 23)
+    #get_f("2018-04-15")

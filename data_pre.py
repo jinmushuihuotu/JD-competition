@@ -1,6 +1,94 @@
 import pandas as pd
+import numpy as np
 from collections import Counter
 import pickle
+import time
+
+
+action_path = "data/jdata/jdata_action.csv"
+comment_path = "data/jdata/jdata_comment.csv"
+product_path = "data/jdata/jdata_product.csv"
+user_path = "data/jdata/jdata_user.csv"
+shop_path = "data/jdata/jdata_shop.csv"
+
+# 针对shop
+
+def time_transform(times):
+    if times is np.nan:
+        return np.nan
+    
+    if len(times) == 21:
+        times = times[:-2]
+            
+    ts = time.mktime(time.strptime('{}'.format(times),
+        "%Y-%m-%d %H:%M:%S")) - 1517414400.0 #2018-02-01
+
+    return ts
+
+
+product = pd.read_csv(product_path)
+product["market_time"] = product["market_time"].map(time_transform)
+#product.fillna(-999999, inplace=True)
+product.drop_duplicates(inplace=True)
+for i in ['sku_id', 'brand', 'shop_id', 'cate']:
+    product[i] = product[i].astype('int')
+product.to_csv(product_path, index=False)
+
+
+
+shop = pd.read_csv(shop_path, na_values=[-1,0])
+shop["shop_reg_tm"] = shop["shop_reg_tm"].map(time_transform)
+shop.dropna(inplace=True)
+'''
+shop.fillna({"shop_reg_tm":shop.median()["shop_reg_tm"],
+             "shop_score":shop.median()["shop_score"],
+             "fans_num":shop.median()["fans_num"],
+             "vip_num":shop.median()["vip_num"],
+             "cate":0}, inplace=True)
+'''
+shop.drop_duplicates(inplace=True)
+
+shop.rename(columns={"cate": "cate_s"},
+                            inplace=True)
+
+for i in ['vender_id', 'shop_id', 'fans_num',
+          'vip_num', 'cate_s']:
+    shop[i] = shop[i].astype('int')
+shop.to_csv(shop_path, index=False)
+
+user = pd.read_csv(user_path)
+user["user_reg_tm"] = user["user_reg_tm"].map(time_transform)
+user.fillna({"user_reg_tm":user.median()["user_reg_tm"]}, inplace = True)
+user.fillna(-999999, inplace=True)
+user.drop_duplicates(inplace=True)
+for i in ['user_id', 'age', 'sex', 'user_lv_cd', 'city_level',
+       'province', 'city', 'county']:
+    user[i] = user[i].astype('int')
+user.to_csv(user_path, index=False)
+
+'''
+data = pd.read_csv(action_path)
+data.iloc[:, 2] =  data.iloc[:, 2].map(time_transform)
+data = data.sort_values(by = ["user_id",
+                                "action_time"])
+data.to_csv("jdata_action.csv", index = False)
+
+
+df[df.isnull().values==True].drop_duplicates()
+def time_transform(self, times):
+
+    if len(times) == 21:
+        times = times[:-2]
+            
+    ts = time.mktime(time.strptime('{}'.format(times),
+        "%Y-%m-%d %H:%M:%S")) - 1517414400.0 #2018-02-01
+
+    return ts
+    
+
+
+'''
+
 '''
 action_path = "data/jdata/jdata_action.csv"
 data = pd.read_csv(action_path)
@@ -31,23 +119,11 @@ data = get_from_action_data(data)
 data = data[data['buy_num'] != 0]
 pickle.dump(data, open('./cache/all_action.pkl', 'wb'))
 '''
+
+
 '''
 数据排序部分
-def time_transform(self, times):
 
-    if len(times) == 21:
-        times = times[:-2]
-            
-    ts = time.mktime(time.strptime('{}'.format(times),
-        "%Y-%m-%d %H:%M:%S")) - 1517414400.0 #2018-02-01
-
-    return ts
-    
-data = pd.read_csv(action_path)
-data.iloc[:, 2] =  data.iloc[:, 2].map(time_transform)
-data = data.sort_values(by = ["user_id",
-                                "action_time"])
-data.to_csv("jdata_action.csv", index = False)
 
 用于绘制浏览-下单时间直方图
 def get_hin(data):
@@ -167,9 +243,7 @@ def get_hin(data):
                 return 0
             
         actions_feat['tar'] = actions_feat.apply(tarit, axis=1)
-        '''
         
-        '''
         tar = []
         for i in actions_feat.index:
             has_2 = np.array(self.actions2[(self.actions2["user_id"] == 
