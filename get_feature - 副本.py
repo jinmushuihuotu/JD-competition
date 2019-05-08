@@ -314,7 +314,7 @@ def get_f(time):
     pickle.dump(test.feats, open(dump_path, 'wb'))
     
 if __name__ == "__main__":
-'''
+
     get_f("2018-04-10")
     get_f("2018-04-06")
     get_f("2018-03-27")
@@ -322,7 +322,7 @@ if __name__ == "__main__":
     get_f("2018-03-15")
     get_f("2018-03-08")
     get_f("2018-03-01")
-'''  
+    
     dump_path = './qcache/%s_0_23_all.pkl' % "2018-04-15"
     test = windows("%s 00:00:00" % "2018-04-15", 0 , 23)
     pickle.dump(test.feats, open(dump_path, 'wb'))
