@@ -45,7 +45,7 @@ class windows():
         self.fets2 = ['shop_id', 'cate_s', 'fans_num',
                       'vip_num', "shop_reg_tm", 'shop_score']
         # 用户特征
-        self.fets3 = ["user_id", "user_reg_tm",
+        self.fets3 = ["user_id", "user_reg_tm", 'age', 'sex',
                        "user_lv_cd", "city_level",
                        "province", "city", "county"]
         
@@ -222,11 +222,10 @@ class windows():
             user = pd.read_csv(user_path)
             #user["user_reg_tm"] = user["user_reg_tm"].map(
             #       lambda x: self.time_transform(x))
-            age_df = pd.get_dummies(user["age"], prefix="age")
-            sex_df = pd.get_dummies(user["sex"], prefix="sex")
+            #age_df = pd.get_dummies(user["age"], prefix="age")
+            #sex_df = pd.get_dummies(user["sex"], prefix="sex")
             #user_lv_df = pd.get_dummies(user["user_lv_cd"], prefix="user_lv_cd")
-            user = pd.concat([user[self.fets3], age_df, sex_df], axis=1)
-            self.fets3 = list(user.columns)
+            user = user[self.fets3]
             us_dict = user.set_index('user_id').to_dict('index')
             pickle.dump(us_dict, open(dump_path, 'wb'))
             
@@ -314,7 +313,7 @@ def get_f(time):
     pickle.dump(test.feats, open(dump_path, 'wb'))
     
 if __name__ == "__main__":
-'''
+
     get_f("2018-04-10")
     get_f("2018-04-06")
     get_f("2018-03-27")
@@ -322,7 +321,7 @@ if __name__ == "__main__":
     get_f("2018-03-15")
     get_f("2018-03-08")
     get_f("2018-03-01")
-'''  
+    
     dump_path = './qcache/%s_0_23_all.pkl' % "2018-04-15"
     test = windows("%s 00:00:00" % "2018-04-15", 0 , 23)
     pickle.dump(test.feats, open(dump_path, 'wb'))
