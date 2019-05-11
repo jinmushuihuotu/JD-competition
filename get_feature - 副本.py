@@ -61,11 +61,9 @@ class windows():
         self.fets3 = ["user_id", "user_reg_tm", 'age', 'sex',
                        "user_lv_cd", "city_level",
                        "province", "city", "county"]
-<<<<<<< HEAD
         #商品维度新特征
         self.fets5 = ['sku_id','browse_ratio','sale_vol_cate','sale_vol_shop']
-=======
->>>>>>> c9e07b89bf1eb15a12c8f7d58b8e6d491eca302b
+
         
         # 计算窗口的三个时间点
         self.end_date = self.time_transform(end_date)
@@ -361,15 +359,14 @@ class windows():
             print(i)
             self.feats[self.fets4[i + 1]] = self.feats["sku_id"].map(lambda x:
                     cm_dict[x][self.fets4[i + 1]])
-<<<<<<< HEAD
+
                 
         print("通过sku_id查询商品维度新特征")
         for i in range(len(self.fets5) - 1):
             print(i)
             self.feats[self.fets5[i + 1]] = self.feats["sku_id"].map(lambda x:
-                    ps_dict[x][self.fets5[i + 1]])
-=======
->>>>>>> c9e07b89bf1eb15a12c8f7d58b8e6d491eca302b
+                    sku_level_dict[x][self.fets5[i + 1]])
+
         
         # 填补缺失值，修正数据类型
         self.feats.fillna({"comments":self.feats.median()["comments"],
@@ -382,7 +379,6 @@ class windows():
         self.feats.drop_duplicates(inplace=True)
         for i in tp:
             self.feats[i] = self.feats[i].astype('int')
-<<<<<<< HEAD
             
     def get_feature_sku_level(self) :
         #利用self.feats根据商品维度计算新特征，生成sku_level_dict
@@ -413,9 +409,8 @@ class windows():
         sku_level_dict = product_level_data.set_index('sku_id').to_dict(orient='index')
 
 
-=======
->>>>>>> c9e07b89bf1eb15a12c8f7d58b8e6d491eca302b
-        
+
+
 
 
 def get_f(time):
