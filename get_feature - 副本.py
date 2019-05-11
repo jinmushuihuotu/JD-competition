@@ -61,8 +61,7 @@ class windows():
         self.fets3 = ["user_id", "user_reg_tm", 'age', 'sex',
                        "user_lv_cd", "city_level",
                        "province", "city", "county"]
-        #商品维度新特征
-        self.fets5 = ['sku_id','browse_ratio','sale_vol_cate','sale_vol_shop']
+        
 
         
         # 计算窗口的三个时间点
@@ -286,6 +285,36 @@ class windows():
 
         return ps_dict, sp_dict, us_dict, ur_dict, cm_dict
     
+    def get_feature_sku_level(self) :
+        #利用self.feats根据商品维度计算新特征，生成sku_level_dict
+        
+        self.fets5 = ['sku_id','browse_ratio','sale_vol_cate','sale_vol_shop']
+        product_level_data = pd.DataFrame(columns=['sku_id','cate','shop_id','sale_vol','browse_num',
+                                                   'browse_ratio','sale_vol_cate','sale_vol_shop'])
+        sku_id_dict  = dict(list(self.feats[['sku_id','cate','shop_id','type_1','type_2'
+                                             ]].groupby(['sku_id'],as_index = False)))
+        
+        for key in sku_id_dict:
+            product_level_data['sku_id'] = key
+            product_level_data['cate'] = sku_id_dict[key]['cate']
+            product_level_data['shop_id'] = sku_id_dict[key]['shop_id']
+            product_level_data['sale_vol'] = sku_id_dict[key]['type_2'].sum()
+            product_level_data['browse_num'] = sku_id_dict[key]['type_1'].sum()
+        
+        temp1 = product_level_data[['cate','sale_vol']].groupby(['cate'],as_index = False).sum().add_prefix('sum_').reset_index()
+        temp2 = product_level_data[['shop_id','sale_vol']].groupby(['shop_id'],as_index = False).sum().add_prefix('sum_').reset_index()
+        product_level_data = pd.merge(pd.merge(product_level_data,temp1),temp2)
+        del temp1
+        del temp2
+        
+        product_level_data['browse_ratio'] = product_level_data['sale_vol']/product_level_data['browse_num']   
+        product_level_data['sale_vol_cate'] = product_level_data['sale_vol']/product_level_data['sum_cate']     
+        product_level_data['sale_vol_shop'] = product_level_data['sale_vol']/product_level_data['sum_shop_id'] 
+              
+        product_level_data = product_level_data[['sku_id','browse_ratio','sale_vol_cate','sale_vol_shop']]  
+        sku_level_dict = product_level_data.set_index('sku_id').to_dict(orient='index')
+        return sku_level_dict
+
     
     def get_feature_product_shop(self):
         '''
@@ -296,7 +325,7 @@ class windows():
         print("开始进行特征查询")
         # 生成特征查询字典
         ps_dict, sp_dict, us_dict, ur_dict, cm_dict = self.get_feature_map()
-        
+        sku_level_dict = self.get_feature_sku_level()
         if self.y != 0:
             print("清理无购买的用户")
             for i in ['user_ratio']:
@@ -380,38 +409,6 @@ class windows():
         for i in tp:
             self.feats[i] = self.feats[i].astype('int')
             
-    def get_feature_sku_level(self) :
-        #利用self.feats根据商品维度计算新特征，生成sku_level_dict
-        
-        product_level_data = pd.DataFrame(columns=['sku_id','cate','shop_id','sale_vol','browse_num',
-                                                   'browse_ratio','sale_vol_cate','sale_vol_shop'])
-        sku_id_dict  = dict(list(self.feats[['sku_id','cate','shop_id','type_1','type_2'
-                                             ]].groupby(['sku_id'],as_index = False)))
-        
-        for key in sku_id_dict:
-            product_level_data['sku_id'] = key
-            product_level_data['cate'] = sku_id_dict[key]['cate']
-            product_level_data['shop_id'] = sku_id_dict[key]['shop_id']
-            product_level_data['sale_vol'] = sku_id_dict[key]['type_2'].sum()
-            product_level_data['browse_num'] = sku_id_dict[key]['type_1'].sum()
-        
-        temp1 = product_level_data[['cate','sale_vol']].groupby(['cate'],as_index = False).sum().add_prefix('sum_').reset_index()
-        temp2 = product_level_data[['shop_id','sale_vol']].groupby(['shop_id'],as_index = False).sum().add_prefix('sum_').reset_index()
-        product_level_data = pd.merge(pd.merge(product_level_data,temp1),temp2)
-        del temp1
-        del temp2
-        
-        product_level_data['browse_ratio'] = product_level_data['sale_vol']/product_level_data['browse_num']   
-        product_level_data['sale_vol_cate'] = product_level_data['sale_vol']/product_level_data['sum_cate']     
-        product_level_data['sale_vol_shop'] = product_level_data['sale_vol']/product_level_data['sum_shop_id'] 
-              
-        product_level_data = product_level_data[['sku_id','browse_ratio','sale_vol_cate','sale_vol_shop']]  
-        sku_level_dict = product_level_data.set_index('sku_id').to_dict(orient='index')
-
-
-
-
-
 
 def get_f(time):
     dump_path = './qcache/%s_7_30_all.pkl' % time
