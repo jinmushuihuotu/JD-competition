@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from collections import Counter
+import featuretools as ft
 import pickle
 import time
 
@@ -26,7 +27,7 @@ def time_transform(times):
     return ts
 
 
-product = pd.read_csv(product_path)
+product = pd.read_csv(product_path, parse_dates = ['market_time'])
 product["market_time"] = product["market_time"].map(time_transform)
 #product.fillna(-999999, inplace=True)
 product.drop_duplicates(inplace=True)
@@ -65,6 +66,54 @@ for i in ['user_id', 'age', 'sex', 'user_lv_cd', 'city_level',
        'province', 'city', 'county']:
     user[i] = user[i].astype('int')
 user.to_csv(user_path, index=False)
+
+
+
+comment = pd.read_csv(comment_path)
+def time_transform(times):
+    if times is np.nan:
+        return np.nan
+    
+    if len(times) == 21:
+        times = times[:-2]
+            
+    ts = time.mktime(time.strptime('{}'.format(times + " 00:00:00"),
+        "%Y-%m-%d %H:%M:%S")) - 1517414400.0 #2018-02-01
+
+    return ts
+comment["dt"] = comment["dt"].map(time_transform)
+comment.to_csv(comment_path, index=False)
+
+
+
+
+
+
+
+# Create new entityset
+es = ft.EntitySet(id = 'actions')
+
+# Create an entity from the client dataframe
+# This dataframe already has an index and a time index
+'''
+es = es.entity_from_dataframe(entity_id = 'actions', 
+                              dataframe = actions,
+                              variable_types = {'type': ft.variable_types.Categorical},
+                              index = 'user_id',
+                              time_index = 'action_time')
+'''
+
+es = es.entity_from_dataframe(entity_id = 'product', dataframe = product, 
+                              index = 'shop_id', time_index = 'market_time')
+
+es = es.entity_from_dataframe(entity_id = 'shop', dataframe = shop, 
+                              index = 'shop_id', time_index = 'shop_reg_tm')
+
+r_client_previous = ft.Relationship(es['product']['shop_id'],
+                                    es['shop']['shop_id'])
+
+# Add the relationship to the entity set
+es = es.add_relationship(r_client_previous)
 
 '''
 data = pd.read_csv(action_path)
